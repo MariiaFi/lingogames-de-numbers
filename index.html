@@ -1,1 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zahlen 1–10 — Учим немецкий счет</title>
+    <style>
+        :root {
+            --primary: #d32f2f; /* Красный цвет немецкого флага */
+            --secondary: #ffc107; /* Золотой цвет немецкого флага */
+            --success: #2ecc71;
+            --danger: #c62828;
+            --bg: #f5f5f5;
+            --text: #212121;
+            --card-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
 
+        * { 
+            box-sizing: border-box; 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 600px;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: 2px solid #333; /* Небольшая рамка для строгости */
+        }
+
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .screen.active { display: flex; }
+
+        h1 { margin-bottom: 5px; color: #000; }
+
+        /* Кнопки */
+        .btn-main {
+            background: #000; /* Черный цвет флага */
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: 0.2s;
+            margin-top: 20px;
+        }
+
+        .btn-main:active { transform: scale(0.95); background: var(--primary); }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid #000;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        .btn-exit {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.05);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            color: #999;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .btn-icon { background: none; border: none; font-size: 2rem; cursor: pointer; }
+
+        /* Обучение */
+        .big-num { font-size: 6rem; font-weight: bold; color: var(--primary); }
+        .de-word { font-size: 2.5rem; color: var(--text); margin: 10px 0; }
+        .pronunciation { font-size: 1.2rem; color: #616161; font-style: italic; }
+
+        .card { flex: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; }
+
+        .progress-bar {
+            width: 70%; height: 10px; background: #eee; border-radius: 5px;  
+            overflow: hidden; margin-top: 10px; margin-right: auto;
+        }
+        .progress-bar .fill { height: 100%; background: var(--secondary); width: 0%; transition: width 0.3s; }
+
+        /* Игра */
+        .game-header { width: 100%; display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 20px; padding-right: 35px; }
+        .target-display { font-size: 5rem; margin: 20px 0; animation: pop 0.3s ease; }
+        .answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin-top: 20px; }
+        .ans-btn { background: #fff; border: 2px solid #ddd; padding: 20px 10px; border-radius: 10px; font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
+        .ans-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+        .ans-btn.wrong { background: var(--danger); color: white; border-color: var(--danger); }
+
+        @keyframes pop { 0% { transform: scale(0.8); } 100% { transform: scale(1); } }
+
+        .mode-selector { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; width: 80%; }
+        .mode-btn { padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #fff; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .mode-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .stats-card { background: #f9f9f9; padding: 20px; border-radius: 15px; width: 100%; margin: 20px 0; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <section id="screen-start" class="screen active">
+        <h1>Zahlen 1–10</h1>
+        <p>Учим немецкий счёт весело!</p>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="training">Lernen (Тренировка)</button>
+            <button class="mode-btn" data-mode="sprint">Sprint (60 сек)</button>
+            <button class="mode-btn" data-mode="streak">Serie (10 ответов)</button>
+        </div>
+
+        <button id="btn-start" class="btn-main">START</button>
+        <button id="btn-mute" class="btn-icon" style="margin-top: 15px;">🔊</button>
+    </section>
+
+    <section id="screen-learn" class="screen">
+        <button class="btn-exit" onclick="stopGameAndExit()">✖</button>
+        <div class="progress-bar"><div class="fill"></div></div>
+        <div class="card">
+            <div id="learn-number" class="big-num">1</div>
+            <div id="learn-word" class="de-word">eins</div>
+            <div id="learn-pron" class="pronunciation">[айнс]</div>
+            <button id="btn-listen" class="btn-secondary">🔊 Hören</button>
+        </div>
+        <button id="btn-next-learn" class="btn-main">Weiter</button>
+    </section>
+
+    <section id="screen-game" class="screen">
+        <button class="btn-exit" onclick="stopGameAndExit()">✖</button>
+        <div class="game-header">
+            <span id="game-timer">01:00</span>
+            <span id="game-score">Punkte: 0</span>
+            <span id="game-streak">🔥 0</span>
+        </div>
+        <div class="question-box">
+            <div id="q-target" class="target-display">?</div>
+            <p id="q-text">Was ist das auf Deutsch?</p>
+        </div>
+        <div id="answer-grid" class="answer-grid"></div>
+    </section>
+
+    <section id="screen-results" class="screen">
+        <h2>Ergebnis</h2>
+        <div class="stats-card">
+            <p id="res-score">Очки: 0</p>
+            <p id="res-accuracy">Точность: 0%</p>
+            <p id="res-rank">Ранг: Anfänger</p>
+        </div>
+        <button id="btn-restart" class="btn-main">Nochmal</button>
+        <button id="btn-to-menu" class="btn-secondary">Menü</button>
+    </section>
+</div>
+
+<script>
+    const DICTIONARY = [
+        { num: 1, de: 'eins', pron: 'айнс' },
+        { num: 2, de: 'zwei', pron: 'цвай' },
+        { num: 3, de: 'drei', pron: 'драй' },
+        { num: 4, de: 'vier', pron: 'фир' },
+        { num: 5, de: 'fünf', pron: 'фюнф' },
+        { num: 6, de: 'sechs', pron: 'зэкс' },
+        { num: 7, de: 'sieben', pron: 'зибен' },
+        { num: 8, de: 'acht', pron: 'ахт' },
+        { num: 9, de: 'neun', pron: 'нойн' },
+        { num: 10, de: 'zehn', pron: 'цейн' }
+    ];
+
+    let gameState = {
+        mode: 'training',
+        currentIdx: 0,
+        score: 0,
+        streak: 0,
+        correctCount: 0,
+        totalAnswered: 0,
+        isMuted: false,
+        timer: null,
+        timeLeft: 60,
+        lastNum: null
+    };
+
+    let germanVoice = null;
+
+    function loadVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        // Ищем немецкий голос (de-DE)
+        germanVoice = voices.find(v => v.lang.startsWith('de')) || voices[0];
+    }
+
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    loadVoices(); 
+
+    function speak(text) {
+        if (gameState.isMuted || !window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = germanVoice;
+        utterance.lang = 'de-DE';
+        utterance.rate = 0.85;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function unlockAudio() {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+        }
+        const probe = new SpeechSynthesisUtterance('');
+        probe.volume = 0;
+        window.speechSynthesis.speak(probe);
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const hideAll = () => document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const showScreen = (id) => { hideAll(); $(id).classList.add('active'); };
+
+    function stopGameAndExit() {
+        if (gameState.timer) { clearInterval(gameState.timer); gameState.timer = null; }
+        showScreen('screen-start');
+    }
+
+    function startTraining() {
+        gameState.currentIdx = 0;
+        showScreen('screen-learn');
+        updateTrainingCard();
+    }
+
+    function updateTrainingCard() {
+        const item = DICTIONARY[gameState.currentIdx];
+        $('learn-number').innerText = item.num;
+        $('learn-word').innerText = item.de;
+        $('learn-pron').innerText = `[${item.pron}]`;
+        const progress = ((gameState.currentIdx + 1) / DICTIONARY.length) * 100;
+        document.querySelector('.progress-bar .fill').style.width = `${progress}%`;
+        setTimeout(() => speak(item.de), 300);
+    }
+
+    function startQuizRound() {
+        showScreen('screen-game');
+        if (gameState.mode === 'sprint' && !gameState.timer) startTimer();
+        
+        let item;
+        do {
+            item = DICTIONARY[Math.floor(Math.random() * DICTIONARY.length)];
+        } while (item.num === gameState.lastNum);
+        gameState.lastNum = item.num;
+
+        const isTypeWordToNum = Math.random() > 0.5;
+        $('q-target').innerText = isTypeWordToNum ? item.de : item.num;
+        $('q-text').innerText = isTypeWordToNum ? "Welche Zahl ist das?" : "Wie sagt man das auf Deutsch?";
+
+        const answers = [item];
+        while (answers.length < 4) {
+            const rand = DICTIONARY[Math.floor(Math.random() * DICTIONARY.length)];
+            if (!answers.find(a => a.num === rand.num)) answers.push(rand);
+        }
+        answers.sort(() => Math.random() - 0.5);
+
+        const grid = $('answer-grid');
+        grid.innerHTML = '';
+        answers.forEach(alt => {
+            const btn = document.createElement('button');
+            btn.className = 'ans-btn';
+            btn.innerText = isTypeWordToNum ? alt.num : alt.de;
+            btn.onclick = () => handleAnswer(alt.num === item.num, btn, item.de);
+            grid.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(isCorrect, btn, soundWord) {
+        const buttons = document.querySelectorAll('.ans-btn');
+        buttons.forEach(b => b.style.pointerEvents = 'none');
+
+        if (isCorrect) {
+            btn.classList.add('correct');
+            gameState.score += 10;
+            gameState.streak++;
+            gameState.correctCount++;
+            speak(soundWord);
+        } else {
+            btn.classList.add('wrong');
+            gameState.score = Math.max(0, gameState.score - 3);
+            gameState.streak = 0;
+        }
+        
+        gameState.totalAnswered++;
+        $('game-score').innerText = `Punkte: ${gameState.score}`;
+        $('game-streak').innerText = `🔥 ${gameState.streak}`;
+
+        setTimeout(() => {
+            buttons.forEach(b => b.style.pointerEvents = 'auto');
+            if (gameState.mode === 'streak' && gameState.totalAnswered >= 10) endGame();
+            else if (gameState.mode === 'training' && isCorrect) {
+                gameState.currentIdx++;
+                if (gameState.currentIdx >= 10) endGame();
+                else updateTrainingCard();
+            } else startQuizRound();
+        }, 700);
+    }
+
+    function startTimer() {
+        gameState.timeLeft = 60;
+        gameState.timer = setInterval(() => {
+            gameState.timeLeft--;
+            const s = gameState.timeLeft;
+            $('game-timer').innerText = `00:${s < 10 ? '0' : ''}${s}`;
+            if (gameState.timeLeft <= 0) endGame();
+        }, 1000);
+    }
+
+    function endGame() {
+        if (gameState.timer) { clearInterval(gameState.timer); gameState.timer = null; }
+        showScreen('screen-results');
+        const accuracy = Math.round((gameState.correctCount / (gameState.totalAnswered || 1)) * 100);
+        $('res-score').innerText = `Очки: ${gameState.score}`;
+        $('res-accuracy').innerText = `Точность: ${accuracy}%`;
+        
+        let rank = "Anfänger 🐣";
+        if (accuracy > 80 && gameState.score > 50) rank = "Gut gemacht! 🥨";
+        if (accuracy > 95 && gameState.score > 150) rank = "Zahlen-Meister! 🏆";
+        $('res-rank').innerText = `Rang: ${rank}`;
+    }
+
+    $('btn-start').onclick = () => {
+        unlockAudio(); loadVoices();  
+        gameState.score = 0; gameState.streak = 0; gameState.correctCount = 0; gameState.totalAnswered = 0;
+        $('game-score').innerText = `Punkte: 0`; $('game-streak').innerText = `🔥 0`;
+        if (gameState.mode === 'training') startTraining();
+        else startQuizRound();
+    };
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            gameState.mode = btn.dataset.mode;
+        };
+    });
+
+    $('btn-next-learn').onclick = () => {
+        gameState.currentIdx++;
+        if (gameState.currentIdx >= 10) endGame();
+        else updateTrainingCard();
+    };
+
+    $('btn-listen').onclick = () => speak(DICTIONARY[gameState.currentIdx].de);
+    $('btn-mute').onclick = () => {
+        gameState.isMuted = !gameState.isMuted;
+        $('btn-mute').innerText = gameState.isMuted ? '🔇' : '🔊';
+    };
+    $('btn-restart').onclick = () => $('btn-start').click();
+    $('btn-to-menu').onclick = () => showScreen('screen-start');
+</script>
+
+</body>
+</html>
